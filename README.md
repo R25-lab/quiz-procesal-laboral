@@ -3,7 +3,7 @@
 
 Quiz interactivo de 100 preguntas de opción múltiple para estudiar la materia de **Derecho Procesal del Trabajo**.
 
-🔗 **[Comenzar quiz →](https://TU-USUARIO.github.io/quiz-procesal-laboral/)**
+🔗 **[Comenzar quiz →](https://r25-lab.github.io/quiz-procesal-laboral/)**
 
 ---
 
@@ -33,7 +33,7 @@ Las preguntas combinan conceptos teóricos, artículos clave de la Ley Federal d
 
 ## Cómo usar
 
-1. Abre el [enlace del quiz](https://r25.github.io/quiz-procesal-laboral/).
+1. Abre el [enlace del quiz](https://r25-lab.github.io/quiz-procesal-laboral/).
 2. Marca la casilla de orden aleatorio si lo deseas.
 3. Click en **Comenzar quiz**.
 4. Selecciona la opción correcta para cada pregunta. Recibirás la respuesta correcta y una breve explicación inmediatamente.
