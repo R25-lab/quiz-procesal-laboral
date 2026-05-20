@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz · Derecho Procesal del Trabajo</title>
+<meta name="description" content="100 preguntas de opción múltiple para estudiar Derecho Procesal del Trabajo (UAdeC). Quiz interactivo con retroalimentación inmediata.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .font-serif { font-family: Georgia, "Times New Roman", serif; }
+  /* Suppress Tailwind CDN production warning in console */
+</style>
+</head>
+<body class="bg-stone-50">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo } = React;
+
+// === ICON COMPONENTS (inline SVG) ===
+const I = (paths) => ({className=""}) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+       dangerouslySetInnerHTML={{__html: paths}}/>
+);
+const CheckIcon = I('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>');
+const XIcon = I('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>');
+const ChevRight = I('<polyline points="9 18 15 12 9 6"/>');
+const Rotate = I('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>');
+const Book = I('<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>');
+const TrophyIcon = I('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>');
+const ShuffleIcon = I('<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>');
+
+const QUESTIONS = [
+  { id: 1, block: 1, topic: 'Tema 1', q: '¿Cuál es el principal objetivo de la Ley Federal del Trabajo según los apuntes?', opts: ['Garantizar la igualdad formal entre patrón y trabajador', 'Equilibrar los factores de producción (capital, trabajo y regulación del Estado)', 'Sancionar al patrón por incumplimientos', 'Crear nuevos derechos laborales constantemente'], a: 1, exp: 'La LFT busca equilibrar los tres factores de producción y compensar la desigualdad social en favor del trabajador.' },
+  { id: 2, block: 1, topic: 'Tema 1', q: 'Según el art. 17 LFT, a falta de disposición expresa, ¿qué fuentes se aplican supletoriamente?', opts: ['Costumbre, jurisprudencia, equidad', 'Disposiciones que regulen casos semejantes, principios generales del derecho, principios de justicia social del art. 123, jurisprudencia, costumbre y equidad', 'Jurisprudencia y doctrina exclusivamente', 'Solo principios generales del derecho'], a: 1, exp: 'El art. 17 establece un orden de prelación que incluye la analogía y, después, principios generales, jurisprudencia, costumbre y equidad.' },
+  { id: 3, block: 1, topic: 'Tema 1', q: 'El derecho procesal del trabajo es autónomo porque:', opts: ['No depende del derecho civil en ningún caso', 'Tiene principios propios, tribunales propios, objetivos diferentes y definitividad de resoluciones', 'Es derecho público', 'Sus normas son irrenunciables'], a: 1, exp: 'La autonomía se fundamenta en estos cuatro elementos, especialmente que no admite segunda instancia.' },
+  { id: 4, block: 1, topic: 'Tema 1', q: '¿Existe supletoriedad del derecho procesal civil respecto al laboral?', opts: ['Sí, en todos los casos', 'Sí, cuando la LFT remite expresamente', 'No existe supletoriedad del derecho procesal civil en la LFT', 'Solo en materia de pruebas'], a: 2, exp: 'No existe supletoriedad; solo se aplica conforme a las reglas y supuestos propios de la LFT. La interpretación se rige por el art. 18 (in dubio pro operario).' },
+  { id: 5, block: 1, topic: 'Tema 2', q: 'La pretensión se define como:', opts: ['El derecho a acudir a los tribunales', 'La declaración de voluntad mediante la cual una persona solicita al órgano jurisdiccional que actúe frente a otra reclamando algo concreto', 'Una resolución judicial', 'Un acto procesal del juzgador'], a: 1, exp: 'La acción es el derecho subjetivo procesal; la pretensión es la declaración concreta de lo que se reclama.' },
+  { id: 6, block: 1, topic: 'Tema 2', q: '¿Cuál es el efecto principal de la presentación de la demanda respecto a la prescripción?', opts: ['La consuma', 'No tiene efecto alguno', 'La interrumpe, ya sea ante junta competente o incompetente', 'Solo la suspende ante junta competente'], a: 2, exp: 'La interrupción opera incluso cuando se presenta ante autoridad incompetente.' },
+  { id: 7, block: 1, topic: 'Tema 2', q: 'La acción de reinstalación con indemnización alternativa (3 meses + salarios vencidos) está prevista en:', opts: ['Art. 47 LFT', 'Art. 48 LFT', 'Art. 123 constitucional', 'Art. 700 LFT'], a: 1, exp: 'El art. 48 LFT regula la opción del trabajador entre reinstalación o indemnización de tres meses, más salarios vencidos hasta por doce meses.' },
+  { id: 8, block: 1, topic: 'Tema 3', q: '¿Cuál de los siguientes NO es un principio del proceso laboral?', opts: ['Inmediación', 'Oralidad predominante', 'Escritura predominante', 'Conciliación'], a: 2, exp: 'El proceso laboral es predominantemente oral, no escrito.' },
+  { id: 9, block: 1, topic: 'Tema 3', q: 'La gratuidad del proceso laboral se encuentra establecida en:', opts: ['Art. 17 LFT', 'Art. 18 LFT', 'Art. 19 LFT', 'Art. 20 LFT'], a: 2, exp: 'El art. 19 LFT establece que las actuaciones no causan impuestos.' },
+  { id: 10, block: 1, topic: 'Tema 3', q: 'El principio de inmediación implica:', opts: ['Rapidez en el desarrollo del proceso', 'Que el juez debe estar presente en todas las audiencias y conducirlas', 'Realización de la mayor cantidad de actos en una sola audiencia', 'Búsqueda de la verdad real'], a: 1, exp: 'Inmediación = presencia y conducción directa del juez. Inmediatez es ausencia de dilaciones; concentración es agrupar actos.' },
+  { id: 11, block: 1, topic: 'Tema 3', q: 'La exención al trabajador de la carga de la prueba se encuentra en:', opts: ['Art. 776 LFT', 'Art. 784 LFT', 'Art. 804 LFT', 'Art. 841 LFT'], a: 1, exp: 'El art. 784 LFT exime al trabajador de probar y desplaza la carga al patrón en supuestos específicos.' },
+  { id: 12, block: 1, topic: 'Tema 4', q: 'La capacidad procesal en materia laboral implica:', opts: ['Solo la calidad para actuar en juicio', 'La facultad de un sujeto para desempeñar por sí mismo los derechos y obligaciones de los que es titular', 'Una representación delegada', 'La aptitud para celebrar contratos'], a: 1, exp: 'Es la aptitud legal para involucrarse personalmente en un litigio.' },
+  { id: 13, block: 1, topic: 'Tema 4', q: 'La diferencia entre personalidad y legitimación radica en que:', opts: ['Son sinónimos', 'Personalidad es la aptitud para comparecer en juicio; legitimación es la titularidad del derecho en disputa', 'Personalidad es titularidad del derecho; legitimación es comparecer', 'Solo aplica una de ellas en materia laboral'], a: 1, exp: 'Una persona puede tener personalidad (capacidad para comparecer) sin tener legitimación (titularidad del derecho que reclama).' },
+  { id: 14, block: 1, topic: 'Tema 4', q: '¿Qué edad mínima se requiere para comparecer a juicio como trabajador?', opts: ['14 años', '15 años', '16 años', '18 años'], a: 2, exp: 'Mayor de 16 años, salvo trabajos especiales. Menores de 16 son representados por la Procuraduría de la Defensa del Trabajo.' },
+  { id: 15, block: 1, topic: 'Tema 5', q: 'En conflictos individuales, la competencia por territorio (art. 700) permite al actor escoger entre:', opts: ['Solo el tribunal del domicilio del demandado', 'Tribunal del lugar de celebración del contrato, del domicilio de cualquier demandado, o del lugar de prestación de servicios', 'Cualquier tribunal del país', 'Solo el del lugar de prestación de servicios'], a: 1, exp: 'El art. 700 fracc. I consagra la libre elección de foro en favor del trabajador.' },
+  { id: 16, block: 1, topic: 'Tema 5', q: 'Las cuestiones de competencia en materia laboral sólo pueden promoverse por:', opts: ['Inhibitoria', 'Declinatoria', 'Recusación', 'Excusa'], a: 1, exp: 'El art. 703 LFT establece la declinatoria como única vía.' },
+  { id: 17, block: 1, topic: 'Tema 5', q: '¿Hasta cuándo puede oponerse la declinatoria?', opts: ['En cualquier momento', 'Hasta la audiencia preliminar', 'Solo en la contestación', 'Después de la audiencia de juicio'], a: 1, exp: 'Art. 703: hasta la audiencia preliminar, acompañando los elementos en que se funde.' },
+  { id: 18, block: 1, topic: 'Tema 5', q: '¿Hasta cuándo puede el Tribunal declararse incompetente de oficio?', opts: ['Solo al inicio del proceso', 'En cualquier estado del proceso, hasta antes de la audiencia de juicio', 'Hasta antes del laudo', 'Nunca, solo a petición de parte'], a: 1, exp: 'Art. 701 LFT: en cualquier estado del proceso, antes de la audiencia de juicio, cuando existan datos que lo justifiquen.' },
+  { id: 19, block: 1, topic: 'Tema 5', q: '¿Cuál es el efecto de lo actuado ante autoridad incompetente?', opts: ['Todo es válido', 'Es nulo, salvo la admisión de la demanda y el convenio celebrado en período de conciliación', 'Solo es nulo el laudo', 'Se anula desde la primera notificación sin excepción'], a: 1, exp: 'Art. 706 LFT establece esas dos salvedades a la nulidad.' },
+  { id: 20, block: 1, topic: 'Tema 6', q: 'El procedimiento de conciliación prejudicial no deberá exceder de:', opts: ['30 días naturales', '45 días naturales', '60 días naturales', '90 días naturales'], a: 1, exp: '45 días naturales es el plazo máximo del procedimiento conciliatorio.' },
+  { id: 21, block: 1, topic: 'Tema 6', q: 'Con la reforma laboral de 2017, las Juntas de Conciliación y Arbitraje:', opts: ['Se mantuvieron sin cambios', 'Se transformaron en Centros de Conciliación únicamente', 'Desaparecieron y sus funciones jurisdiccionales se trasladaron a los tribunales laborales', 'Se federalizaron'], a: 2, exp: 'La función jurisdiccional pasó a tribunales del Poder Judicial; la conciliación a los Centros.' },
+  { id: 22, block: 1, topic: 'Tema 7', q: 'La representación legal sindical se encuentra prevista en:', opts: ['Art. 11 LFT', 'Art. 375 LFT', 'Art. 692 LFT', 'Art. 700 LFT'], a: 1, exp: 'El art. 375 LFT establece que los sindicatos representan a sus miembros en la defensa de derechos individuales.' },
+  { id: 23, block: 1, topic: 'Tema 7', q: '¿Cuál es la vigencia de los poderes en materia laboral?', opts: ['1 año', '2 años', '3 años', 'Indefinida'], a: 1, exp: 'Los poderes tienen vigencia de 2 años y sus facultades deben constar en el acta constitutiva.' },
+  { id: 24, block: 1, topic: 'Tema 7', q: 'Cuando dos o más personas ejerciten la misma acción u opongan la misma excepción en un mismo juicio (art. 697):', opts: ['Pueden actuar por separado libremente', 'Deben litigar unidas y con una representación común, salvo intereses opuestos', 'Solo el primero en presentar tendrá legitimación', 'El tribunal debe escindir el juicio'], a: 1, exp: 'El art. 697 LFT regula el litisconsorcio con representación común.' },
+  { id: 25, block: 2, topic: 'Tema 8', q: 'La demanda laboral debe presentarse:', opts: ['Oralmente', 'Por escrito, acompañando tantas copias como demandados haya', 'Por correo electrónico únicamente', 'Solo ante notario público'], a: 1, exp: 'Art. 872 LFT.' },
+  { id: 26, block: 2, topic: 'Tema 8', q: 'Si el demandante es el trabajador y faltan copias de la demanda:', opts: ['Es causa de desechamiento', 'Se previene al actor con apercibimiento', 'El Tribunal deberá subsanar de oficio dicha falta', 'El expediente se archiva'], a: 2, exp: 'Art. 872 LFT establece que la falta de copias no es causa de prevención, archivo ni desechamiento cuando el actor es el trabajador.' },
+  { id: 27, block: 2, topic: 'Tema 8', q: '¿Qué documento debe anexarse obligatoriamente a la demanda laboral?', opts: ['Recibo de pago de impuestos', 'Constancia expedida por el Organismo de Conciliación que acredite la conclusión del procedimiento sin acuerdo', 'Certificado de antecedentes no penales', 'Acta constitutiva del patrón'], a: 1, exp: 'Es requisito de procedibilidad la constancia de no conciliación.' },
+  { id: 28, block: 2, topic: 'Tema 8', q: 'Si el trabajador ignora el nombre o denominación del patrón:', opts: ['No puede demandar', 'Debe esperar a conocerlo para demandar', 'Puede aportar cualquier dato útil para su identificación', 'Debe contratar un investigador privado'], a: 2, exp: 'La LFT permite suplir la falta de nombre con cualquier dato útil cuando el actor es el trabajador.' },
+  { id: 29, block: 2, topic: 'Tema 9', q: '¿Qué efecto produce el silencio o las evasivas en la contestación de demanda?', opts: ['Se admite prueba en contrario', 'Hacen que se tengan por admitidos los hechos sobre los que no se suscite controversia, sin admitir prueba en contrario', 'Solo afectan al patrón', 'Ningún efecto procesal'], a: 1, exp: 'El silencio o evasiva equivale a admisión, sin que sea admisible prueba en contrario.' },
+  { id: 30, block: 2, topic: 'Tema 9', q: 'La negación pura y simple del derecho:', opts: ['Implica la confesión de los hechos', 'Tiene el mismo efecto que negar los hechos', 'Implica la aceptación del derecho', 'No tiene consecuencias procesales'], a: 0, exp: 'Negar el derecho sin negar hechos equivale a confesar los hechos. La confesión de hechos no entraña aceptación del derecho.' },
+  { id: 31, block: 2, topic: 'Tema 9', q: 'En caso de que el demandado niegue la relación de trabajo:', opts: ['Debe ofrecer pruebas contundentes específicas', 'Podrá negar los hechos en forma genérica', 'Se le tendrá por confeso automáticamente', 'Pierde el derecho a contestar'], a: 1, exp: 'La negación de la relación de trabajo permite negar los hechos genéricamente, como excepción a la regla.' },
+  { id: 32, block: 2, topic: 'Tema 9', q: 'El plazo para que el actor formule réplica tras correrle traslado con la contestación es de:', opts: ['3 días', '5 días', '8 días', '15 días'], a: 2, exp: 'Art. 873-B LFT: 8 días para réplica.' },
+  { id: 33, block: 2, topic: 'Tema 10', q: '¿Cuáles son los medios de apremio que puede imponer el Tribunal?', opts: ['Solo multas', 'Multas, presentación con auxilio de la fuerza pública y arresto hasta por 36 horas', 'Prisión preventiva', 'Cárcel administrativa por 72 horas'], a: 1, exp: 'Son medios de apremio para hacer cumplir las determinaciones del Tribunal.' },
+  { id: 34, block: 2, topic: 'Tema 10', q: 'Las audiencias laborales son:', opts: ['Privadas siempre', 'Públicas, salvo casos excepcionales por la naturaleza del asunto', 'Reservadas exclusivamente a las partes', 'Cerradas al público en todo caso'], a: 1, exp: 'El principio de publicidad rige el proceso laboral, con excepciones puntuales.' },
+  { id: 35, block: 2, topic: 'Tema 10', q: 'El incidente de reposición de autos procede cuando:', opts: ['Se pierde o destruye el expediente', 'Hay una mala notificación', 'Cambia el juez', 'Las partes lo solicitan voluntariamente'], a: 0, exp: 'Se tramita como incidente para reconstruir el procedimiento con las constancias existentes.' },
+  { id: 36, block: 2, topic: 'Tema 11', q: '¿Cuándo comienzan a correr los términos en materia laboral (art. 733)?', opts: ['El mismo día de la notificación', 'El día siguiente al en que surta efecto la notificación, contándose el día del vencimiento', 'Tres días después de la notificación', 'Cuando lo determine el juez'], a: 1, exp: 'Art. 733 LFT.' },
+  { id: 37, block: 2, topic: 'Tema 11', q: 'Cuando algún acto procesal no tenga término fijado, este será de:', opts: ['24 horas', '3 días hábiles', '5 días hábiles', '8 días hábiles'], a: 1, exp: 'Art. 735 LFT: regla supletoria de 3 días hábiles.' },
+  { id: 38, block: 2, topic: 'Tema 11', q: 'Para computar los términos, los meses se regularán por (art. 736):', opts: ['Días hábiles únicamente', '30 días naturales', 'Días calendario completos del mes correspondiente', '28 días'], a: 1, exp: 'Los meses laborales se cuentan como 30 días naturales; los días hábiles son de 24 horas naturales.' },
+  { id: 39, block: 2, topic: 'Tema 11', q: '¿Cuál de las siguientes notificaciones NO se hace personalmente (art. 742)?', opts: ['Emplazamiento a juicio', 'Auto de radicación remitido por tribunales de otra competencia', 'Acuerdos de mero trámite', 'Sentencia laboral no dictada en audiencia'], a: 2, exp: 'Los acuerdos de mero trámite se notifican por boletín; las del art. 742 son taxativas personales.' },
+  { id: 40, block: 2, topic: 'Tema 12', q: 'Los incidentes de previo y especial pronunciamiento:', opts: ['Se resuelven al final del juicio', 'Deben resolverse antes de que se decida la controversia principal mediante resolución interlocutoria', 'No suspenden el procedimiento', 'Solo aplican en huelga'], a: 1, exp: 'Suspenden el principal hasta que se emita resolución interlocutoria.' },
+  { id: 41, block: 2, topic: 'Tema 12', q: '¿Cuál de los siguientes NO se tramita como incidente de previo y especial pronunciamiento?', opts: ['Nulidad', 'Competencia', 'Falta de personalidad', 'Ofrecimiento de pruebas'], a: 3, exp: 'El ofrecimiento de pruebas es parte del trámite ordinario, no un incidente.' },
+  { id: 42, block: 2, topic: 'Tema 12', q: 'El incidente de nulidad puede interponerse:', opts: ['Solo en la contestación', 'En cualquier momento hasta antes del laudo', 'Después del laudo', 'Solo durante la ejecución'], a: 1, exp: 'Procede en cualquier momento antes del laudo, para invalidar notificaciones o actuaciones irregulares.' },
+  { id: 43, block: 3, topic: 'Tema 13', q: '¿Qué medios de prueba son admisibles en el proceso laboral (art. 776)?', opts: ['Solo confesional y documental', 'Todos los medios que no sean contrarios a la moral y al derecho', 'Solo los enumerados expresamente y nada más', 'Únicamente los aceptados por las partes'], a: 1, exp: 'El art. 776 LFT admite todos los medios que no sean contrarios a la moral y al derecho.' },
+  { id: 44, block: 3, topic: 'Tema 13', q: 'Las sentencias laborales se dictan:', opts: ['Conforme a reglas estrictas de valoración tasada', 'A verdad sabida y buena fe guardada, apreciando los hechos en conciencia', 'Solo con base en pruebas documentales', 'Únicamente con dictamen pericial'], a: 1, exp: 'El sistema de valoración es flexible y en conciencia, pero el tribunal debe expresar los motivos y fundamentos.' },
+  { id: 45, block: 3, topic: 'Tema 13', q: 'Las pruebas sobre hechos supervinientes pueden ofrecerse:', opts: ['Solo en la demanda', 'Hasta antes de emitir sentencia, dentro de los tres días siguientes a su conocimiento', 'Después del laudo', 'En cualquier momento sin restricción'], a: 1, exp: 'Son los hechos conocidos después de la audiencia de ofrecimiento o sobrevenidos.' },
+  { id: 46, block: 3, topic: 'Tema 13', q: '¿Cuándo NO es necesario probar un hecho (art. 777)?', opts: ['Cuando es notorio, probado o admitido', 'Nunca, siempre hay que probar todo', 'Solo cuando el juez lo dispense expresamente', 'Cuando lo afirme el trabajador'], a: 0, exp: 'Las pruebas deben referirse a hechos controvertidos cuando no hayan sido confesados por las partes.' },
+  { id: 47, block: 3, topic: 'Tema 14', q: '¿A quién corresponde la carga de la prueba en los casos de rescisión laboral?', opts: ['Al trabajador', 'Al empleador', 'A ambos por partes iguales', 'Al juez de oficio'], a: 1, exp: 'En rescisión, el patrón debe probar la causa; en otros supuestos, está obligado a probar quien afirma.' },
+  { id: 48, block: 3, topic: 'Tema 14', q: '¿Cuántas faltas injustificadas en un mes son causa de rescisión laboral?', opts: ['Dos', 'Tres en un período de treinta días', 'Cinco', 'Siete'], a: 1, exp: 'Art. 47 LFT: más de tres faltas injustificadas en treinta días.' },
+  { id: 49, block: 3, topic: 'Tema 14', q: 'Entre los documentos que el patrón debe conservar y exhibir en juicio (art. 804) están:', opts: ['Solo los contratos individuales', 'Contratos, listas de raya o nómina, controles de asistencia, comprobantes de utilidades, vacaciones, aguinaldos y aportaciones de seguridad social', 'Solo las nóminas', 'Únicamente los recibos de pago de salarios'], a: 1, exp: 'El art. 804 LFT enumera taxativamente los documentos que el patrón debe conservar y exhibir.' },
+  { id: 50, block: 3, topic: 'Tema 15', q: 'La prueba confesional se solicita para que la contraparte:', opts: ['Concurra a absolver posiciones y responder preguntas', 'Aporte pruebas documentales', 'Designe un perito', 'Identifique a sus testigos'], a: 0, exp: 'Art. 786 LFT.' },
+  { id: 51, block: 3, topic: 'Tema 15', q: '¿Cómo se formulan las preguntas en la confesional según las reglas vigentes?', opts: ['Por escrito en pliego sellado', 'En forma oral durante la audiencia mediante interrogatorio abierto, sobre hechos controvertidos en términos claros y precisos', 'Solo mediante posiciones cerradas en pliego', 'Por vía electrónica diferida'], a: 1, exp: 'La reforma cambió a interrogatorio abierto y oral; el juez puede desechar preguntas que no cumplan los requisitos.' },
+  { id: 52, block: 3, topic: 'Tema 15', q: 'En el caso de personas morales, la confesional puede desahogarse por:', opts: ['Cualquier empleado', 'Su representante legal o apoderado con facultades para absolver posiciones', 'El gerente de recursos humanos exclusivamente', 'Cualquier accionista'], a: 1, exp: 'Sindicatos absuelven por conducto de su secretario general o representante estatutariamente autorizado.' },
+  { id: 53, block: 3, topic: 'Tema 16', q: 'Los documentos públicos son aquellos:', opts: ['Cualquier documento firmado por dos personas', 'Cuya formulación está encomendada por la Ley a un funcionario investido de fe pública', 'Los publicados en periódico oficial', 'Los que están en el dominio público'], a: 1, exp: 'Los privados son los que no reúnen estas características.' },
+  { id: 54, block: 3, topic: 'Tema 16', q: 'La compulsa es:', opts: ['La impugnación de un documento', 'La certificación de que una copia es fiel al original, generalmente de documentos en poder de terceros', 'Una citación para audiencia', 'Un embargo precautorio'], a: 1, exp: 'Aplica para documentos en poder de terceros como bancos o instituciones públicas. Se realiza por conducto del actuario (art. 807).' },
+  { id: 55, block: 3, topic: 'Tema 16', q: 'Los documentos privados objetados en cuanto a contenido y firma:', opts: ['Pierden todo valor automáticamente', 'Se dejarán en autos hasta su perfeccionamiento', 'Deben certificarse ante notario', 'Se devuelven al oferente sin trámite'], a: 1, exp: 'Si no son objetados, la oferente puede solicitar devolución del original previa copia certificada en autos.' },
+  { id: 56, block: 3, topic: 'Tema 17', q: '¿Quiénes están obligados a declarar como testigos (art. 813)?', opts: ['Solo los familiares de las partes', 'Todos los que tengan conocimiento de los hechos que las partes deben probar', 'Únicamente los empleados de la empresa', 'Solo los testigos ofrecidos por el actor'], a: 1, exp: 'Es un deber general derivado del art. 813 LFT.' },
+  { id: 57, block: 3, topic: 'Tema 17', q: 'En el desahogo de la testimonial, los testigos:', opts: ['Declaran en grupo', 'Son examinados por separado en el orden en que fueron ofrecidos', 'Pueden ser entrevistados conjuntamente por las partes antes', 'Solo declaran por escrito'], a: 1, exp: 'Art. 815 LFT.' },
+  { id: 58, block: 3, topic: 'Tema 17', q: 'Si el testigo no se identifica con documento oficial:', opts: ['Su declaración tiene pleno valor', 'Se dejará sin efectos la declaración', 'Se le impone una multa', 'Puede declarar bajo seudónimo'], a: 1, exp: 'Es requisito de la identificación con documento oficial vigente.' },
+  { id: 59, block: 3, topic: 'Tema 18', q: 'La prueba pericial debe ofrecerse:', opts: ['Sin requisitos adicionales', 'Indicando la materia y exhibiendo el cuestionario respectivo con copia para cada parte', 'Solo nombrando al perito', 'Después de la audiencia de juicio'], a: 1, exp: 'La omisión del cuestionario impide la admisión de la prueba.' },
+  { id: 60, block: 3, topic: 'Tema 18', q: 'Al admitir la prueba pericial, el Tribunal:', opts: ['Espera el dictamen de las partes', 'Designará al perito o peritos oficiales que estime necesarios', 'Convoca a sorteo entre peritos privados', 'Suspende el proceso indefinidamente'], a: 1, exp: 'Las partes pueden acompañarse de un asesor; el trabajador puede solicitarlo a la Defensoría Pública o Procuraduría.' },
+  { id: 61, block: 3, topic: 'Tema 18', q: 'La prueba de inspección (art. 827) debe ofrecerse:', opts: ['De forma genérica', 'En sentido afirmativo, precisando objeto, períodos y hechos que se pretenden acreditar', 'Después de la contestación', 'Solo en alegatos finales'], a: 1, exp: 'El ofrecimiento debe ser afirmativo y específico.' },
+  { id: 62, block: 3, topic: 'Tema 18', q: 'La presunción legal se da cuando:', opts: ['Las partes la invocan expresamente', 'La Ley la establece expresamente o se deriva de la aplicación de principios del derecho del trabajo', 'El juez la decide discrecionalmente sin base normativa', 'Solo se aplica en huelga'], a: 1, exp: 'La presunción humana, en cambio, deduce un hecho de otro debidamente probado. Art. 830 LFT.' },
+  { id: 63, block: 3, topic: 'Tema 18', q: 'La prueba instrumental (art. 835) se refiere a:', opts: ['Solo peritajes técnicos', 'El conjunto de actuaciones y elementos que obren en el expediente y los anexos formados con motivo del juicio', 'Documentos públicos exclusivamente', 'Instrumentos electrónicos solamente'], a: 1, exp: 'El Tribunal está obligado a tomarla en cuenta de oficio (art. 836).' },
+  { id: 64, block: 4, topic: 'Tema 19', q: '¿Qué resolución decide sobre el fondo del conflicto?', opts: ['Acuerdo', 'Auto incidental o resolución interlocutoria', 'Sentencia definitiva', 'Cédula de notificación'], a: 2, exp: 'Los acuerdos son trámite, las interlocutorias resuelven incidentes, y la sentencia el fondo.' },
+  { id: 65, block: 4, topic: 'Tema 19', q: 'Tras la notificación de la sentencia, ¿en qué plazo puede solicitarse su aclaración (art. 847)?', opts: ['Inmediatamente', 'Dentro de tres días', 'Cinco días', 'Quince días'], a: 1, exp: 'La aclaración procede para corregir errores o precisar algún punto, sin modificar el fondo.' },
+  { id: 66, block: 4, topic: 'Tema 19', q: '¿Cuál de los siguientes NO es un requisito de la sentencia (art. 840)?', opts: ['Lugar, fecha y Tribunal', 'Extracto de demanda, contestación, réplica y contrarréplica', 'Razones legales o de equidad y puntos resolutivos', 'Aprobación firmada por las partes del juicio'], a: 3, exp: 'La sentencia no se firma por las partes; el art. 840 enumera sus requisitos sin incluir consentimiento.' },
+  { id: 67, block: 4, topic: 'Tema 20', q: 'El arraigo como providencia cautelar consiste en:', opts: ['Detener al demandado', 'Prevenir al demandado que no se ausente del lugar de su residencia sin dejar representante legítimo, suficientemente instruido y expensado', 'Embargo automático de cuentas', 'Suspender el contrato laboral'], a: 1, exp: 'Se decreta de plano y no implica detención corporal.' },
+  { id: 68, block: 4, topic: 'Tema 20', q: '¿En qué tiempo puede el Tribunal decretar el embargo precautorio (art. 861)?', opts: ['En 48 horas', 'Dentro de las 24 horas siguientes', 'En 5 días', 'En una semana'], a: 1, exp: 'El Tribunal valora circunstancias y pruebas para decretar en 24 horas la medida precautoria.' },
+  { id: 69, block: 4, topic: 'Tema 20', q: 'Una medida cautelar específica del art. 857 LFT para trabajadora embarazada despedida es:', opts: ['La reinstalación inmediata sin trámite', 'Requerir al patrón abstenerse de dar de baja de seguridad social, presentando certificado médico', 'Un pago anticipado', 'La nulidad automática del despido'], a: 1, exp: 'Es una de las medidas reforzadas para proteger derechos fundamentales y evitar discriminación.' },
+  { id: 70, block: 4, topic: 'Tema 21', q: 'Antes de acudir a los tribunales laborales, los trabajadores y patrones deberán:', opts: ['Contratar abogado certificado', 'Asistir al Centro de Conciliación correspondiente, salvo excepciones legales', 'Notificar a la STPS directamente', 'Obtener un dictamen pericial previo'], a: 1, exp: 'Es requisito de procedibilidad agotar la conciliación prejudicial salvo supuestos exceptuados.' },
+  { id: 71, block: 4, topic: 'Tema 21', q: 'La audiencia de conciliación prejudicial se celebrará dentro de:', opts: ['5 días', '10 días', '15 días siguientes a la solicitud', '30 días'], a: 2, exp: 'El citatorio se notifica personalmente al patrón con al menos 5 días de anticipación.' },
+  { id: 72, block: 4, topic: 'Tema 21', q: 'Una vez celebrado el convenio ante los Centros de Conciliación:', opts: ['Solo es opinión orientativa', 'Adquiere la condición de cosa juzgada con calidad de título ejecutivo, sin necesidad de ratificación', 'Necesita ratificación judicial posterior', 'Puede revocarse libremente por cualquier parte'], a: 1, exp: 'El convenio conciliatorio es título suficiente para iniciar acciones ejecutivas.' },
+  { id: 73, block: 4, topic: 'Tema 21', q: 'El procedimiento ordinario consta de:', opts: ['Una sola audiencia oral', 'Fase escrita (demanda, contestación, réplica, contrarréplica) y fase oral (audiencia preliminar y de juicio)', 'Solo etapa escrita', 'Solo etapa oral'], a: 1, exp: 'Tras la fijación de litis escrita, sigue la fase oral en dos audiencias.' },
+  { id: 74, block: 4, topic: 'Tema 22', q: 'En el procedimiento especial, ¿en qué plazo debe contestarse la demanda?', opts: ['5 días', '10 días', '15 días', '20 días'], a: 1, exp: 'En procedimiento especial los plazos se acortan: 10 días para contestar, 3 para réplica y 3 para contrarréplica.' },
+  { id: 75, block: 4, topic: 'Tema 22', q: 'El procedimiento especial se diferencia del ordinario porque:', opts: ['Es más lento por su rigor formal', 'Está diseñado para resolver conflictos de forma rápida y concentrada', 'Solo aplica para huelga', 'Tiene más audiencias y plazos'], a: 1, exp: 'Todo lo que la ley no establezca como especial se tramita por vía ordinaria.' },
+  { id: 76, block: 4, topic: 'Tema 22', q: 'En la mayoría de procedimientos especiales, la sentencia se dicta:', opts: ['Por escrito a los 30 días', 'En la misma audiencia, o con plazo adicional hasta cinco días en casos excepcionales', 'Después de seis meses', 'Solo cuando lo soliciten las partes'], a: 1, exp: 'La inmediatez resolutiva es característica del procedimiento especial.' },
+  { id: 77, block: 5, topic: 'Tema 23', q: 'Los conflictos colectivos de naturaleza económica (art. 900) son aquellos cuyo planteamiento tiene por objeto:', opts: ['Conflictos sobre interpretación de contratos individuales', 'La modificación o implantación de nuevas condiciones de trabajo, o la suspensión o terminación de las relaciones colectivas de trabajo', 'Conflictos entre dos sindicatos', 'Conflictos sobre prestaciones individuales únicamente'], a: 1, exp: 'Art. 900 LFT.' },
+  { id: 78, block: 5, topic: 'Tema 23', q: '¿Quiénes pueden plantear conflictos colectivos de naturaleza económica (art. 903)?', opts: ['Solo los patrones', 'Sindicatos titulares de contratos colectivos, mayoría de trabajadores de una empresa, o el patrón o patrones', 'Únicamente la STPS', 'Solo un trabajador individualmente'], a: 1, exp: 'Tres sujetos legitimados con requisitos específicos de prueba documental.' },
+  { id: 79, block: 5, topic: 'Tema 23', q: 'En conflictos colectivos económicos, las pruebas de recuento sirven para:', opts: ['Contar votos en una huelga', 'Verificar información económica controvertida, elaborando un padrón confiable', 'Determinar la antigüedad de los trabajadores', 'Asignar utilidades anuales'], a: 1, exp: 'El tribunal puede solicitar información al IMSS, al Centro de Conciliación y al patrón.' },
+  { id: 80, block: 5, topic: 'Tema 24', q: 'La huelga es:', opts: ['Un derecho individual de cada trabajador', 'La suspensión temporal del trabajo llevada a cabo por una coalición de trabajadores', 'Una indemnización colectiva', 'Una revisión anual obligatoria de contrato'], a: 1, exp: 'Es un derecho colectivo de la coalición.' },
+  { id: 81, block: 5, topic: 'Tema 24', q: '¿Con cuánta anticipación debe darse el aviso para suspensión de labores?', opts: ['3 días generales', 'Al menos 6 días con anticipación, y 10 días en servicios públicos', '15 días siempre', '30 días en todos los casos'], a: 1, exp: 'El término de prehuelga es de 6 o 10 días según el caso.' },
+  { id: 82, block: 5, topic: 'Tema 24', q: 'Cuando el objeto de la huelga sea la celebración del contrato colectivo, deberá anexarse:', opts: ['Lista de afiliados sindicales', 'Constancia de Representatividad expedida por el Centro Federal de Conciliación y Registro Laboral', 'Estatutos sindicales completos', 'Inventario de bienes del sindicato'], a: 1, exp: 'Requisito introducido para garantizar legitimación auténtica del sindicato emplazante.' },
+  { id: 83, block: 5, topic: 'Tema 24', q: '¿En qué plazo el patrón debe contestar el pliego de peticiones?', opts: ['24 horas', '48 horas siguientes a la notificación, ante el Tribunal', '5 días', '10 días'], a: 1, exp: 'La contestación debe presentarse por escrito ante el Tribunal en 48 horas.' },
+  { id: 84, block: 5, topic: 'Tema 24', q: 'Entre los objetivos de la huelga según el art. 450 LFT NO se encuentra:', opts: ['Equilibrio entre factores de producción', 'Celebración o revisión del contrato colectivo o contrato-ley', 'Apoyo a otra huelga', 'Despido de directivos sindicales'], a: 3, exp: 'Los objetivos están taxativamente enumerados: equilibrio, celebración/revisión/cumplimiento de CCT, utilidades, apoyo a otra huelga y revisión de salarios contractuales.' },
+  { id: 85, block: 5, topic: 'Tema 25', q: 'La huelga es legalmente inexistente cuando (art. 459):', opts: ['Solo dura un día', 'Se realiza por número menor de trabajadores al fijado, no persigue objetivos del art. 450, o no se cumplieron requisitos del art. 920', 'El patrón se niega a negociar', 'Solo se realiza en el sector privado'], a: 1, exp: 'No puede declararse inexistencia por causas distintas a las tres del art. 459.' },
+  { id: 86, block: 5, topic: 'Tema 25', q: '¿En qué plazo debe presentarse la solicitud de inexistencia de la huelga?', opts: ['24 horas', 'Dentro de las 72 horas siguientes a la suspensión del trabajo', '5 días', '10 días'], a: 1, exp: 'Pueden solicitarla el patrón, los trabajadores afectados o terceros interesados.' },
+  { id: 87, block: 5, topic: 'Tema 25', q: 'Si el Tribunal declara la inexistencia legal de la huelga, los trabajadores deben regresar a su trabajo en (art. 932):', opts: ['12 horas', '24 horas', '48 horas', '72 horas'], a: 1, exp: 'Si no acatan en 24 horas, quedan terminadas las relaciones de trabajo salvo causa justificada.' },
+  { id: 88, block: 5, topic: 'Tema 25', q: 'La huelga es ilícita cuando (art. 445):', opts: ['Dura más de 30 días', 'La mayoría de huelguistas ejecuta actos violentos contra personas o propiedades, o en caso de guerra cuando los trabajadores dependan del Gobierno', 'Hay más de 50 trabajadores participando', 'Se realiza sin sindicato titular'], a: 1, exp: 'Si se declara ilícita, se dan por terminadas las relaciones de trabajo de los huelguistas (art. 934).' },
+  { id: 89, block: 5, topic: 'Tema 26', q: 'La huelga termina (art. 469) por:', opts: ['Solo por sentencia del Tribunal', 'Acuerdo entre las partes, allanamiento del patrón, laudo arbitral, o sentencia del Tribunal si las partes le someten el conflicto', 'Sólo por desistimiento de los trabajadores', 'Únicamente cuando el patrón paga indemnización'], a: 1, exp: 'Cuatro causas taxativas de terminación.' },
+  { id: 90, block: 5, topic: 'Tema 26', q: 'El patrón puede someter el conflicto al Tribunal cuando la huelga (art. 937):', opts: ['Inicie formalmente', 'Se extienda por más de 60 días', 'Pase 30 días', 'Nunca puede hacerlo unilateralmente'], a: 1, exp: 'Solo después de 60 días el patrón adquiere ese derecho de provocar el procedimiento de imputabilidad.' },
+  { id: 91, block: 5, topic: 'Tema 26', q: 'El allanamiento como forma de terminar la huelga implica que:', opts: ['El trabajador desiste del pliego', 'El patrón acepta incondicionalmente los hechos narrados por los trabajadores en las demandas y cubre salarios caídos', 'Se cancela la huelga sin pago', 'Se reemplazan a los trabajadores huelguistas'], a: 1, exp: 'Adicionalmente, el patrón debe cubrir los salarios que hubiesen dejado de percibir los trabajadores.' },
+  { id: 92, block: 6, topic: 'Tema 27', q: 'Las sentencias laborales deben cumplirse dentro de:', opts: ['5 días', '15 días siguientes al en que surta efectos la notificación', '30 días', '60 días'], a: 1, exp: 'El juez puede tomar medidas precautorias como embargo de cuentas o inmuebles ante riesgo de incumplimiento.' },
+  { id: 93, block: 6, topic: 'Tema 27', q: 'La insumisión al arbitraje en el procedimiento laboral actual:', opts: ['Sigue plenamente vigente', 'Ya no existe', 'Solo aplica en huelga', 'Aplica solo a sindicatos minoritarios'], a: 1, exp: 'Antes permitía al patrón pagar indemnización en lugar de reinstalar; fue eliminada.' },
+  { id: 94, block: 6, topic: 'Tema 27', q: '¿Cuál NO es una clase de embargo en materia laboral?', opts: ['Embargo de bienes muebles', 'Embargo de cuentas bancarias', 'Embargo corporal del deudor', 'Embargo precautorio'], a: 2, exp: 'No existe embargo sobre la persona; solo sobre bienes muebles, inmuebles, cuentas y embargo precautorio.' },
+  { id: 95, block: 6, topic: 'Tema 27', q: 'La ampliación del embargo procede cuando:', opts: ['Lo solicita el demandado', 'Tras el avalúo se determina que los bienes embargados no son suficientes para cubrir la deuda, o al promoverse tercería con auto admisorio', 'Solo en procedimiento de huelga', 'Pasaron 5 años desde el embargo'], a: 1, exp: 'Art. 965 LFT contempla la ampliación a petición del actor en supuestos específicos.' },
+  { id: 96, block: 6, topic: 'Tema 28', q: 'La tercería excluyente de dominio (art. 976) tiene por objeto:', opts: ['Pagar preferentemente un crédito laboral', 'Conseguir el levantamiento del embargo practicado en bienes de propiedad de terceros', 'Sustituir al trabajador en su acción', 'Constituirse en una forma adicional de embargo'], a: 1, exp: 'La tercería de preferencia, en cambio, busca pago preferente con el producto de los bienes embargados.' },
+  { id: 97, block: 6, topic: 'Tema 28', q: '¿Qué efecto tiene la tercería sobre el procedimiento principal?', opts: ['Suspende todo el procedimiento principal', 'No suspende la tramitación: la excluyente de dominio suspende solo el acto de remate, y la de preferencia el pago del crédito', 'Lo termina automáticamente', 'Solo lo notifica sin más consecuencia'], a: 1, exp: 'Se tramita en cuerda separada y produce efectos suspensivos limitados.' },
+  { id: 98, block: 6, topic: 'Tema 28', q: 'En materia de preferencias de crédito, los créditos laborales:', opts: ['Son los últimos en pagarse', 'Tienen preferencia sobre otros, incluidos los fiscales, en cumplimiento de los principios de justicia social', 'Tienen igual rango que los civiles', 'Solo si son privilegiados notarialmente'], a: 1, exp: 'La preferencia laboral es una manifestación del principio tutelar del derecho del trabajo.' },
+  { id: 99, block: 6, topic: 'Tema 28', q: 'En la preferencia de crédito rige el principio de:', opts: ['"Primero en presentar, primero gana"', '"Primero en tiempo, primero en derecho"', '"Quien primero pide, primero recibe sin orden"', 'Igualdad absoluta entre acreedores'], a: 1, exp: 'Principio de prioridad temporal, salvo excepciones como derechos alimentistas y créditos laborales.' },
+  { id: 100, block: 6, topic: 'Tema 29', q: 'Los procedimientos paraprocesales o voluntarios son:', opts: ['Procesos contenciosos abreviados', 'Actos jurídicos ante el Tribunal Laboral que no derivan de un conflicto entre partes, pero requieren intervención judicial para otorgarles validez, autenticidad o efectos legales', 'Sentencias firmes en abreviado', 'Convenios sin valor legal alguno'], a: 1, exp: 'Pueden iniciarse por mandato de ley, por naturaleza del acto o a solicitud de parte interesada.' },
+];
+
+const BLOCKS = {
+  1: { name: 'Parte General', short: 'Temas 1-7' },
+  2: { name: 'Demanda y Actuaciones', short: 'Temas 8-12' },
+  3: { name: 'Pruebas', short: 'Temas 13-18' },
+  4: { name: 'Resoluciones y Procedimientos', short: 'Temas 19-22' },
+  5: { name: 'Conflictos Colectivos y Huelga', short: 'Temas 23-26' },
+  6: { name: 'Ejecución y Paraprocesales', short: 'Temas 27-29' },
+};
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function App() {
+  const [started, setStarted] = useState(false);
+  const [randomize, setRandomize] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [answered, setAnswered] = useState(false);
+  const [answers, setAnswers] = useState([]);
+  const [questionOrder, setQuestionOrder] = useState(QUESTIONS.map((_, i) => i));
+
+  const orderedQuestions = useMemo(
+    () => questionOrder.map(i => QUESTIONS[i]),
+    [questionOrder]
+  );
+
+  const q = orderedQuestions[current];
+  const total = orderedQuestions.length;
+  const correctCount = answers.filter(a => a.correct).length;
+
+  function start() {
+    setQuestionOrder(randomize ? shuffleArray(QUESTIONS.map((_, i) => i)) : QUESTIONS.map((_, i) => i));
+    setStarted(true);
+    setCurrent(0);
+    setSelected(null);
+    setAnswered(false);
+    setAnswers([]);
+  }
+
+  function selectOption(idx) {
+    if (answered) return;
+    setSelected(idx);
+    setAnswered(true);
+    setAnswers(prev => [...prev, { id: q.id, block: q.block, correct: idx === q.a, selected: idx }]);
+  }
+
+  function next() {
+    if (current + 1 < total) {
+      setCurrent(current + 1);
+      setSelected(null);
+      setAnswered(false);
+    } else {
+      setCurrent(total);
+    }
+  }
+
+  function restart() {
+    setStarted(false);
+    setCurrent(0);
+    setSelected(null);
+    setAnswered(false);
+    setAnswers([]);
+  }
+
+  if (!started) {
+    return (
+      <div className="min-h-screen w-full bg-stone-50 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-white rounded-lg shadow-sm border border-stone-200 p-8 md:p-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-slate-800 rounded">
+              <Book className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xs uppercase tracking-widest text-stone-500 font-medium">UAdeC · Facultad de Jurisprudencia</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-serif text-slate-900 mb-3 leading-tight">
+            Derecho Procesal del Trabajo
+          </h1>
+          <p className="text-stone-600 mb-8 text-lg">
+            Quiz de estudio · 100 preguntas de opción múltiple
+          </p>
+
+          <div className="space-y-3 mb-8">
+            <div className="border-l-2 border-slate-800 pl-4 py-1">
+              <h3 className="text-sm font-semibold text-slate-900 mb-2">Estructura por bloques</h3>
+              <ul className="text-sm text-stone-600 space-y-1">
+                {Object.entries(BLOCKS).map(([k, b]) => {
+                  const count = QUESTIONS.filter(qq => qq.block === parseInt(k)).length;
+                  return (
+                    <li key={k} className="flex justify-between">
+                      <span>{b.name} <span className="text-stone-400">({b.short})</span></span>
+                      <span className="text-stone-500 tabular-nums">{count} preg.</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 mb-6 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={randomize}
+              onChange={e => setRandomize(e.target.checked)}
+              className="w-4 h-4 accent-slate-800"
+            />
+            <ShuffleIcon className="w-4 h-4 text-stone-500" />
+            <span className="text-sm text-stone-700 group-hover:text-slate-900">
+              Orden aleatorio de preguntas
+            </span>
+          </label>
+
+          <button
+            onClick={start}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 px-6 rounded font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            Comenzar quiz
+            <ChevRight className="w-4 h-4" />
+          </button>
+
+          <p className="text-xs text-stone-400 mt-6 text-center">
+            Recibirás retroalimentación inmediata con la base legal de cada respuesta.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (current >= total) {
+    const pct = Math.round((correctCount / total) * 100);
+    const blockStats = Object.entries(BLOCKS).map(([k, b]) => {
+      const blockAnswers = answers.filter(a => a.block === parseInt(k));
+      const blockCorrect = blockAnswers.filter(a => a.correct).length;
+      return {
+        block: parseInt(k),
+        name: b.name,
+        short: b.short,
+        correct: blockCorrect,
+        total: blockAnswers.length,
+        pct: blockAnswers.length > 0 ? Math.round((blockCorrect / blockAnswers.length) * 100) : 0,
+      };
+    });
+
+    let grade, gradeColor, gradeText;
+    if (pct >= 90) { grade = 'Excelente'; gradeColor = 'text-emerald-700'; gradeText = 'Dominio sólido del temario.'; }
+    else if (pct >= 75) { grade = 'Muy bien'; gradeColor = 'text-emerald-600'; gradeText = 'Buen manejo. Repasa los puntos donde fallaste.'; }
+    else if (pct >= 60) { grade = 'Suficiente'; gradeColor = 'text-amber-600'; gradeText = 'Hay áreas claras de oportunidad.'; }
+    else { grade = 'Reforzar'; gradeColor = 'text-rose-700'; gradeText = 'Conviene un repaso integral antes de la siguiente vuelta.'; }
+
+    return (
+      <div className="min-h-screen w-full bg-stone-50 p-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-8 md:p-10">
+            <div className="flex items-center gap-3 mb-2">
+              <TrophyIcon className="w-5 h-5 text-slate-700" />
+              <span className="text-xs uppercase tracking-widest text-stone-500 font-medium">Resultado final</span>
+            </div>
+            <h2 className="text-3xl font-serif text-slate-900 mb-1">Quiz completado</h2>
+            <p className="text-stone-600 mb-8">Desempeño general por bloque temático</p>
+
+            <div className="bg-stone-50 rounded-lg p-6 mb-8 border border-stone-200">
+              <div className="flex items-baseline justify-between mb-4">
+                <span className="text-stone-600 text-sm">Puntuación</span>
+                <span className={`text-sm font-semibold ${gradeColor}`}>{grade}</span>
+              </div>
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="text-5xl font-serif text-slate-900 tabular-nums">{correctCount}</span>
+                <span className="text-2xl text-stone-400 tabular-nums">/ {total}</span>
+                <span className="ml-auto text-3xl font-serif text-slate-900 tabular-nums">{pct}%</span>
+              </div>
+              <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden mt-3">
+                <div className="h-full bg-slate-800 transition-all duration-700" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="text-sm text-stone-600 mt-3">{gradeText}</p>
+            </div>
+
+            <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wide">Desglose por bloque</h3>
+            <div className="space-y-3 mb-8">
+              {blockStats.map(s => (
+                <div key={s.block} className="border border-stone-200 rounded p-4">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <div>
+                      <span className="text-xs text-stone-500">Bloque {s.block}</span>
+                      <h4 className="font-medium text-slate-900">{s.name}</h4>
+                      <span className="text-xs text-stone-400">{s.short}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-serif text-slate-900 tabular-nums">{s.correct}/{s.total}</div>
+                      <div className="text-sm text-stone-500 tabular-nums">{s.pct}%</div>
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${s.pct >= 75 ? 'bg-emerald-600' : s.pct >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                      style={{ width: `${s.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={restart}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 px-6 rounded font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <Rotate className="w-4 h-4" />
+              Reiniciar quiz
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const progress = ((current + 1) / total) * 100;
+  const blockInfo = BLOCKS[q.block];
+
+  return (
+    <div className="min-h-screen w-full bg-stone-50 p-4 md:p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs text-stone-500 mb-2">
+            <span className="uppercase tracking-widest font-medium">
+              Pregunta {current + 1} <span className="text-stone-400">de {total}</span>
+            </span>
+            <span className="tabular-nums">
+              {correctCount} {correctCount === 1 ? 'acierto' : 'aciertos'}
+            </span>
+          </div>
+          <div className="w-full h-1 bg-stone-200 rounded-full overflow-hidden">
+            <div className="h-full bg-slate-800 transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="flex items-center gap-2 mt-3 text-xs flex-wrap">
+            <span className="px-2 py-0.5 bg-slate-900 text-white rounded font-medium">Bloque {q.block}</span>
+            <span className="text-stone-600">{blockInfo.name}</span>
+            <span className="text-stone-400">·</span>
+            <span className="text-stone-500">{q.topic}</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 md:p-8 mb-4">
+          <h2 className="text-lg md:text-xl text-slate-900 mb-6 leading-relaxed font-medium">{q.q}</h2>
+
+          <div className="space-y-2.5">
+            {q.opts.map((opt, idx) => {
+              const isSelected = selected === idx;
+              const isCorrect = idx === q.a;
+              const showCorrect = answered && isCorrect;
+              const showIncorrect = answered && isSelected && !isCorrect;
+
+              let classes = 'w-full text-left p-4 rounded border transition-all flex items-start gap-3 ';
+              if (!answered) {
+                classes += 'border-stone-200 hover:border-slate-400 hover:bg-stone-50 cursor-pointer';
+              } else if (showCorrect) {
+                classes += 'border-emerald-500 bg-emerald-50 text-emerald-900';
+              } else if (showIncorrect) {
+                classes += 'border-rose-400 bg-rose-50 text-rose-900';
+              } else {
+                classes += 'border-stone-200 text-stone-500';
+              }
+
+              return (
+                <button key={idx} onClick={() => selectOption(idx)} disabled={answered} className={classes}>
+                  <span className={`flex-shrink-0 w-6 h-6 rounded-full border flex items-center justify-center text-xs font-semibold mt-0.5 ${
+                    showCorrect ? 'border-emerald-600 bg-emerald-600 text-white' :
+                    showIncorrect ? 'border-rose-500 bg-rose-500 text-white' :
+                    isSelected ? 'border-slate-800' : 'border-stone-300 text-stone-500'
+                  }`}>
+                    {showCorrect ? '✓' : showIncorrect ? '✕' : String.fromCharCode(65 + idx)}
+                  </span>
+                  <span className="flex-1 leading-relaxed text-sm md:text-base">{opt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {answered && (
+            <div className={`mt-5 p-4 rounded border ${selected === q.a ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <div className="flex items-start gap-2.5">
+                {selected === q.a ?
+                  <CheckIcon className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" /> :
+                  <XIcon className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                }
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold mb-1 ${selected === q.a ? 'text-emerald-900' : 'text-amber-900'}`}>
+                    {selected === q.a ? 'Correcto' : 'Respuesta correcta: ' + String.fromCharCode(65 + q.a)}
+                  </p>
+                  <p className={`text-sm leading-relaxed ${selected === q.a ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    {q.exp}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {answered && (
+          <button
+            onClick={next}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 px-6 rounded font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {current + 1 === total ? 'Ver resultados' : 'Siguiente pregunta'}
+            <ChevRight className="w-4 h-4" />
+          </button>
+        )}
+
+        <div className="text-center mt-4">
+          <button onClick={restart} className="text-xs text-stone-500 hover:text-slate-900 transition-colors inline-flex items-center gap-1">
+            <Rotate className="w-3 h-3" />
+            Reiniciar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
